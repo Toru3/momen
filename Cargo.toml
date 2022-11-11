@@ -1,0 +1,24 @@
+[package]
+name = "momen"
+version = "0.1.0"
+edition = "2021"
+description = "low overhead thread pool"
+license = "AGPL-3.0-or-later"
+documentation = "https://docs.rs/momen/"
+repository = "https://gitlab.com/Toru3/momen"
+keywords = ["performance", "concurrency", "thread", "parallel", "data-parallel"]
+categories = ["concurrency"]
+
+[dependencies]
+atomic-wait = "1.0.1"
+clone_all = "0.1.1"
+core_affinity = "0.5.10"
+
+[dev-dependencies]
+criterion = { version = "0.4.0", features = ["html_reports"] }
+rand = "0.8.5"
+rayon = "1.5.3"
+
+[[bench]]
+name = "bench"
+harness = false
