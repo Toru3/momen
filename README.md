@@ -24,6 +24,7 @@ for i in 0..1000 {
 
 # benchmark
 <img src="image/lines.png">
+
 * OS : Ubuntu
 * CPU : Ryzen 9 5950X
 * MEM : DDR4 3600MHz 128GB
