@@ -154,7 +154,8 @@ fn bench_copy(c: &mut Criterion) {
 criterion_group! {
     name = copy;
     config = Criterion::default()
-        .sample_size(10000);
+        .sample_size(10000)
+        .measurement_time(std::time::Duration::from_secs(60));
     targets = bench_copy
 }
 criterion_main!(copy);

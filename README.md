@@ -26,7 +26,7 @@ for i in 0..1000 {
 ```
 
 # Benchmark
-<img src="image/lines.png">
+<img src="image/lines.svg">
 
 * OS : Ubuntu
 * CPU : Ryzen 9 5950X
