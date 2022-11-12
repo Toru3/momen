@@ -19,6 +19,10 @@
 //!    assert_eq!(alpha * x[i], y[i]);
 //!}
 //!```
+pub mod iter;
+pub mod prelude {
+    pub use crate::iter::{ParallelIterator, ParallelSliceMut};
+}
 use clone_all::clone_all;
 use core::{marker::PhantomData, sync::atomic::AtomicUsize};
 use std::{
@@ -245,13 +249,12 @@ where
     }
 }
 /// dynamic version thread pool
-pub struct ThreadPoolDyn<T: Send + Sync> {
+pub struct ThreadPoolDyn {
     threads: Vec<(JoinHandle<()>, Arc<Elem>)>,
     main: Arc<Main>,
-    pd: PhantomData<T>,
     unsync: PhantomUnsync,
 }
-impl<T: Send + Sync> ThreadPoolDyn<T> {
+impl ThreadPoolDyn {
     /// construst thread pool
     ///
     /// This function swpawns `nproc - 1` threads.
@@ -282,7 +285,7 @@ impl<T: Send + Sync> ThreadPoolDyn<T> {
                             let end = f[0] == 0 && f[1] == 0;
                             if !end {
                                 let d = unsafe { usize_to_ref(d) };
-                                let f = unsafe { usize_to_ref_dyn::<T>(f) };
+                                let f = unsafe { usize_to_ref_dyn::<core::ffi::c_void>(f) };
                                 f(d);
                             }
                             store!(elem.ptr, 0);
@@ -301,7 +304,6 @@ impl<T: Send + Sync> ThreadPoolDyn<T> {
         Self {
             threads,
             main,
-            pd: PhantomData,
             unsync: PhantomData,
         }
     }
@@ -312,7 +314,7 @@ impl<T: Send + Sync> ThreadPoolDyn<T> {
     /// run `func` with `data` on thread pool
     ///
     /// REQUIRE: `data.len() <= self.max_len()`
-    pub fn run(&self, data: &mut [T], func: &(dyn Fn(&mut T) + Send + Sync)) {
+    pub fn run<T: Send + Sync>(&self, data: &mut [T], func: &(dyn Fn(&mut T) + Send + Sync)) {
         debug_assert_eq!(load!(self.main.func[0]), 0);
         debug_assert_eq!(load!(self.main.func[1]), 0);
         let (head, tail) = data.split_first_mut().unwrap();
@@ -339,12 +341,12 @@ impl<T: Send + Sync> ThreadPoolDyn<T> {
         let _ = func;
     }
 }
-impl<T: Send + Sync> Default for ThreadPoolDyn<T> {
+impl Default for ThreadPoolDyn {
     fn default() -> Self {
         Self::new()
     }
 }
-impl<T: Send + Sync> Drop for ThreadPoolDyn<T> {
+impl Drop for ThreadPoolDyn {
     fn drop(&mut self) {
         // assert_eq!(load!(self.main.func[0]), 0);
         // assert_eq!(load!(self.main.func[1]), 0);
