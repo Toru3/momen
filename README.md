@@ -31,5 +31,5 @@ for i in 0..1000 {
 * OS : Ubuntu
 * CPU : Ryzen 9 5950X
 * MEM : DDR4 3600MHz 128GB
-* momen = "0.1.0"
+* momen = "0.2.0"
 * rayon = "1.5.3"
