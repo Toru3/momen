@@ -10,6 +10,7 @@ keywords = ["performance", "concurrency", "thread", "parallel", "data-parallel"]
 categories = ["concurrency"]
 
 [dependencies]
+arrayvec = { version = "0.7.2", default-features = false }
 atomic-wait = "1.0.1"
 clone_all = "0.1.1"
 core_affinity = "0.5.10"

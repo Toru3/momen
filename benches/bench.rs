@@ -2,7 +2,7 @@ use criterion::{
     black_box, criterion_group, criterion_main, AxisScale, BenchmarkId, Criterion,
     PlotConfiguration, Throughput,
 };
-use momen::*;
+use momen::prelude::*;
 use rand::Rng;
 use rayon::prelude::*;
 
@@ -77,6 +77,23 @@ fn bench_copy(c: &mut Criterion) {
         {
             let x = gen_rand(size);
             let mut y = vec![0f64; size];
+            group.bench_with_input(
+                BenchmarkId::new("ThreadPoolIter", size),
+                &size,
+                |b, &_size| {
+                    b.iter(|| {
+                        x.chunks(batch_size)
+                            .zip(y.chunks_mut(batch_size))
+                            .par_for_each(&pool1);
+                    })
+                },
+            );
+            assert!(check(&x, &y));
+            std::thread::sleep(cool_down);
+        }
+        {
+            let x = gen_rand(size);
+            let mut y = vec![0f64; size];
             let mut input = x
                 .chunks(batch_size)
                 .zip(y.chunks_mut(batch_size))
@@ -86,6 +103,23 @@ fn bench_copy(c: &mut Criterion) {
                 &size,
                 |b, &_size| {
                     b.iter(|| pool2.run(black_box(&mut input), black_box(&copy_aux)));
+                },
+            );
+            assert!(check(&x, &y));
+            std::thread::sleep(cool_down);
+        }
+        {
+            let x = gen_rand(size);
+            let mut y = vec![0f64; size];
+            group.bench_with_input(
+                BenchmarkId::new("ThreadPoolDynIter", size),
+                &size,
+                |b, &_size| {
+                    b.iter(|| {
+                        x.chunks(batch_size)
+                            .zip(y.chunks_mut(batch_size))
+                            .par_for_each_dyn(black_box(&copy_aux), &pool2);
+                    })
                 },
             );
             assert!(check(&x, &y));

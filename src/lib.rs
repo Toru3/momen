@@ -1,10 +1,11 @@
 //!木綿(momen) is low overhead thread pool library.
 //!
 //!```rust
+//!use momen::prelude::*;
 //!fn daxpy(alpha: f64, x: &[f64], y: &mut [f64]) {
 //!    y.iter_mut().zip(x.iter()).for_each(|(y, x)| *y += alpha * *x);
 //!}
-//!let thread_pool = momen::ThreadPoolDyn::new();
+//!let thread_pool = ThreadPoolDyn::new();
 //!let n = thread_pool.max_len();
 //!let mut x = Vec::with_capacity(1000);
 //!let mut y = vec![0f64; 1000];
@@ -12,16 +13,56 @@
 //!    x.push(i as f64);
 //!}
 //!let chunck_size = (1000 + n - 1) / n;
-//!let mut v = x.chunks(chunck_size).zip(y.chunks_mut(chunck_size)).collect::<Vec<_>>();
 //!let alpha = std::f64::consts::PI;
-//!thread_pool.run(&mut v, &|(x, y)| daxpy(alpha, x, y));
+//!x.chunks(chunck_size)
+//! .zip(y.chunks_mut(chunck_size))
+//! .par_for_each_dyn(&|(x, y)| daxpy(alpha, x, y), &thread_pool);
 //!for i in 0..1000 {
 //!    assert_eq!(alpha * x[i], y[i]);
 //!}
 //!```
-pub mod iter;
+pub mod iter {
+    use arrayvec::ArrayVec;
+    pub trait DynamicParallelIterator: ExactSizeIterator + Sized {
+        fn par_for_each_dyn<F>(self, func: &F, thread_pool: &crate::ThreadPoolDyn)
+        where
+            Self::Item: Send + Sync,
+            F: Fn(&mut Self::Item) + Sync + Send,
+        {
+            let num_threads = thread_pool.max_len();
+            assert!(self.len() <= num_threads);
+            if num_threads <= 32 {
+                let mut v = self.collect::<ArrayVec<_, 32>>();
+                thread_pool.run(&mut v, func);
+            } else {
+                let mut v = self.collect::<Vec<_>>();
+                thread_pool.run(&mut v, func);
+            }
+        }
+    }
+    impl<T: ExactSizeIterator + Sized> DynamicParallelIterator for T {}
+    pub trait StaticParallelIterator: ExactSizeIterator + Sized {
+        fn par_for_each<F>(self, thread_pool: &crate::ThreadPool<Self::Item, F>)
+        where
+            Self::Item: Send + Sync,
+            F: Fn(&mut Self::Item) + Clone + Send + Sync + 'static,
+        {
+            let num_threads = thread_pool.max_len();
+            assert!(self.len() <= num_threads);
+            if num_threads <= 32 {
+                let mut v = self.collect::<ArrayVec<_, 32>>();
+                thread_pool.run(&mut v);
+            } else {
+                let mut v = self.collect::<Vec<_>>();
+                thread_pool.run(&mut v);
+            }
+        }
+    }
+    impl<T: ExactSizeIterator + Sized> StaticParallelIterator for T {}
+}
 pub mod prelude {
-    pub use crate::iter::{ParallelIterator, ParallelSliceMut};
+    pub use crate::iter::{DynamicParallelIterator, StaticParallelIterator};
+    pub use crate::{ThreadPool, ThreadPoolDyn};
 }
 use clone_all::clone_all;
 use core::{marker::PhantomData, sync::atomic::AtomicUsize};

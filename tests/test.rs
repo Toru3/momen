@@ -14,16 +14,13 @@ fn daxpy(alpha: f64, x: &[f64], y: &mut [f64]) {
 fn daxpy_aux(arg: &mut (&[f64], &mut [f64])) {
     daxpy(std::f64::consts::PI, arg.0, arg.1);
 }
-fn double(x: &mut [f64]) {
-    x.iter_mut().for_each(|x| *x *= 2.0);
-}
 
 #[test]
 fn test_static() {
     let thread_pool = momen::ThreadPool::new(daxpy_aux);
     let n = thread_pool.max_len();
-    let len = 1_000_000;
-    for _ in 0..1000 {
+    let len = 1000;
+    for _ in 0..10000 {
         let x = gen_rand(len);
         let mut y = vec![0f64; len];
         let chunck_size = (len + n - 1) / n;
@@ -38,11 +35,28 @@ fn test_static() {
     }
 }
 #[test]
+fn test_iter() {
+    let thread_pool = momen::ThreadPool::new(daxpy_aux);
+    let n = thread_pool.max_len();
+    let len = 1000;
+    for _ in 0..10000 {
+        let x = gen_rand(len);
+        let mut y = vec![0f64; len];
+        let chunck_size = (len + n - 1) / n;
+        x.chunks(chunck_size)
+            .zip(y.chunks_mut(chunck_size))
+            .par_for_each(&thread_pool);
+        for i in 0..1000 {
+            assert_eq!(std::f64::consts::PI * x[i], y[i]);
+        }
+    }
+}
+#[test]
 fn test_dyn() {
     let thread_pool = momen::ThreadPoolDyn::new();
     let n = thread_pool.max_len();
-    let len = 1_000_000;
-    for _ in 0..1000 {
+    let len = 1000;
+    for _ in 0..10000 {
         let x = gen_rand(len);
         let mut y = vec![0f64; len];
         let chunck_size = (len + n - 1) / n;
@@ -58,19 +72,20 @@ fn test_dyn() {
     }
 }
 #[test]
-fn test_chunks_mut() {
+fn test_iter_dyn() {
     let thread_pool = momen::ThreadPoolDyn::new();
     let n = thread_pool.max_len();
-    let len = 1_000_000;
-    for _ in 0..1000 {
+    let len = 1000;
+    for _ in 0..10000 {
         let x = gen_rand(len);
-        let mut y = x.clone();
+        let mut y = vec![0f64; len];
         let chunck_size = (len + n - 1) / n;
-        y.as_mut_slice()
-            .par_chunks_mut(chunck_size)
-            .for_each(&|x| double(x), &thread_pool);
+        let alpha = rand::random();
+        x.chunks(chunck_size)
+            .zip(y.chunks_mut(chunck_size))
+            .par_for_each_dyn(&|(x, y)| daxpy(alpha, x, y), &thread_pool);
         for i in 0..1000 {
-            assert_eq!(2.0 * x[i], y[i]);
+            assert_eq!(alpha * x[i], y[i]);
         }
     }
 }
