@@ -8,6 +8,7 @@ documentation = "https://docs.rs/momen/"
 repository = "https://gitlab.com/Toru3/momen"
 keywords = ["performance", "concurrency", "thread", "parallel", "data-parallel"]
 categories = ["concurrency"]
+rust-version = "1.70"
 
 [dependencies]
 arrayvec = { version = "0.7.2", default-features = false }
