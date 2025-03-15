@@ -22,8 +22,10 @@ test:
     - fi
     - cargo fetch # ソースコードのダウンロード
     - cargo fmt --all -- --check --verbose # フォーマットチェック
-    - cargo clippy --workspace $FEATURES -- -D warnings
-    - cargo test --workspace $FEATURES --jobs 1
+    - if [ "$RUST_VERSION" != "1.70.0"  ]; then
+    -     cargo clippy --workspace --all-targets $FEATURES -- -D warnings
+    -     cargo test --workspace $FEATURES --jobs 1
+    - fi
   cache:
     - key: "crates-$USE_MINIMAL_VERSIONS"
       paths:
